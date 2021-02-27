@@ -1,6 +1,7 @@
 package com.bjmashibing.system.io;
 
 import org.junit.Test;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -9,6 +10,9 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
+/**
+ * 文件系统IO
+ */
 public class OSFileIO {
 
     static byte[] data = "123456789\n".getBytes();
@@ -70,24 +74,46 @@ public class OSFileIO {
 
         RandomAccessFile raf = new RandomAccessFile(path, "rw");
 
+            /**
+             * 普通写
+             *
+             * 结果显示：
+             * hello mashibing
+             * hello seanzhou
+             * 此时结果在pagecache,不在磁盘上
+             */
         raf.write("hello mashibing\n".getBytes());
         raf.write("hello seanzhou\n".getBytes());
         System.out.println("write------------");
         System.in.read();
 
+            /**
+             * 随机写
+             *
+             * 结果显示：
+             * hellooxxshibing
+             * hello seanzhou
+             */
         raf.seek(4);
         raf.write("ooxx".getBytes());
 
         System.out.println("seek---------");
         System.in.read();
 
+            /**
+             * 堆外映射写
+             *
+             * 结果显示：
+             * @@@looxxshibing
+             * hello seanzhou
+             */
         FileChannel rafchannel = raf.getChannel();
         //mmap  堆外  和文件映射的   byte  not  objtect
         MappedByteBuffer map = rafchannel.map(FileChannel.MapMode.READ_WRITE, 0, 4096);
 
         map.put("@@@".getBytes());  //不是系统调用  但是数据会到达 内核的pagecache
             //曾经我们是需要out.write()  这样的系统调用，才能让程序的data 进入内核的pagecache
-            //曾经必须有用户态内核态切换
+            //换言之，曾经必须有用户态内核态切换
             //mmap的内存映射，依然是内核的pagecache体系所约束的！！！
             //换言之，丢数据
             //你可以去github上找一些 其他C程序员写的jni扩展库，使用linux内核的Direct IO
@@ -103,12 +129,12 @@ public class OSFileIO {
 
         raf.seek(0);
 
-        ByteBuffer buffer = ByteBuffer.allocate(8192);
-//        ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
+        ByteBuffer buffer = ByteBuffer.allocate(8192);//堆上分配
+//        ByteBuffer buffer = ByteBuffer.allocateDirect(1024); //堆外分配
 
-        int read = rafchannel.read(buffer);   //buffer.put()
+        int read = rafchannel.read(buffer);   //相当于buffer.put()
         System.out.println(buffer);
-        buffer.flip();
+        buffer.flip();//翻转
         System.out.println(buffer);
 
         for (int i = 0; i < buffer.limit(); i++) {

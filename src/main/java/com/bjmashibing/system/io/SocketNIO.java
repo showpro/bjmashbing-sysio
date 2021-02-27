@@ -7,6 +7,9 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 
+/**
+ * NIO
+ */
 public class SocketNIO {
 
     public static void main(String[] args) throws Exception {

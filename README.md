@@ -4,7 +4,7 @@
 
 关于操作系统IO篇章
 
-冯诺依曼体系结构：计算器，控制器，主存储器，输入设备，输出设备
+冯诺依曼体系结构：计算器，控制器(CPU)，主存储器(内存)，输入设备，输出设备
 
 
 
@@ -58,9 +58,18 @@ cat abc.txt
 { echo $BASHPID ;  read x;  }  |  { cat ; echo $BASHPID ;  read y; } 
 测试socket类型：
 exec  8<>  /dev/tcp/www.baidu.com/80
+文件描述符8输入输出，描述dev/tcp目录下www.baidu.com/80
+ll
+最终结果：文件描述符8，指向一个socket
+lsof -op $$ 
+【查看整合结果】
 
-lsof -op $$
-【以下是整合的结果】
+cd /proc/$$/fd
+$$表示当前bash的进程id号，进入该程序fd目录
+exec 6< ~/ooxx.txt
+随便取一个文件描述符6，读取家目录下的ooxx.txt文件 
+lsof -op $$   查看当前进程文件描述符所有细节
+【以下是整合的结果，观察6r那一行数据，偏移量为0】
 COMMAND  PID USER   FD   TYPE DEVICE OFFSET     NODE NAME
 bash    4398 root  cwd    DIR    8,3        10227872 /root/mashibing
 bash    4398 root  rtd    DIR    8,3               2 /
@@ -82,11 +91,17 @@ bash    4398 root    "6r   REG    8,3    0t0 10227564 /root/ooxx.txt"
 bash    4398 root    "8u  IPv4  39172    0t0      TCP node01:54723->104.193.88.123:http (CLOSE_WAIT)""
 bash    4398 root  255u   CHR  136,2    0t0        5 /dev/pts/2
 
+任何程序都有0，1，2：0 标准输入  1 标准输出  2 报错输出
 read a <& 6
-通过读取6号文件描述符，查看0t4的offset变化
+一行行的读，a是一个变量，通过读取6号文件描述符，查看0t4的offset变化
+echo $a
+打印a变量值
+echo $$
+查看进程id
 
 一切皆文件：这里主要展示 socket/pipeline
 另外，fd，文件描述符代表打开的文件，有inode号和seek偏移指针的概念
+内核为每个进程各自维护了一套数据，数据中包含了进程的fd,fd维护了一些关于该fd所指向的文件的偏移，node信息等
 
 ```
 
@@ -98,6 +113,8 @@ read a <& 6
 
 
 ```
+显示内核控制项命令：sysctl -a
+sysctl -a | grep dirty
 vm.dirty_background_ratio = 0
 vm.dirty_background_bytes = 1048576
 vm.dirty_ratio = 0
