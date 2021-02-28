@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.StandardSocketOptions;
 
 /**
  * @author: 马士兵教育
@@ -51,7 +50,7 @@ public class SocketIOPropertites {
 
         ServerSocket server = null;
         try {
-            server = new ServerSocket();
+            server = new ServerSocket();//TCP层面是启动一个监听： 0.0.0.0:9090  0.0.0.0.* Listen 本地9090对端所有端口，即任何端口号都可以连9090端口
             server.bind(new InetSocketAddress( 9090), BACK_LOG);
             server.setReceiveBufferSize(RECEIVE_BUFFER);
             server.setReuseAddress(REUSE_ADDR);
@@ -65,7 +64,10 @@ public class SocketIOPropertites {
             try {
                 System.in.read();  //分水岭：
 
-                Socket client = server.accept();
+                //什么是socket？它是一个四元组（唯一性）
+                //每个程序需要持有一个文件描述符fd（相当于索引），它指向内核
+                //accept后拿到内核抽象代表fd，代表每一个socket,在Java中fd被包装成了一个对象Socket
+                Socket client = server.accept();//接收客户端，若有客户端连接，会得到一个客户端文件描述符:listen(fd3)->fd5 /blocking，没有客户端连接则一直阻塞
                 System.out.println("client port: " + client.getPort());
 
                 client.setKeepAlive(CLI_KEEPALIVE);
@@ -76,6 +78,9 @@ public class SocketIOPropertites {
                 client.setSoLinger(CLI_LINGER, CLI_LINGER_N);
                 client.setSoTimeout(CLI_TIMEOUT);
                 client.setTcpNoDelay(CLI_NO_DELAY);
+
+                //如果客户端进入线程去读，而直接去读数据
+                //client.read    //阻塞，从而整个循环阻塞，如果下一个客户端需要接收，代码执行不动。因此可以将阻塞放到线程里面去，去线程里面读
 
                 new Thread(
                         () -> {
