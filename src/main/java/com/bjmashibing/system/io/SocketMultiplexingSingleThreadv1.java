@@ -34,10 +34,10 @@ public class SocketMultiplexingSingleThreadv1 {
 
             //server 约等于 listen状态的fd4
             /**
-             register
+             register  注册到多路复用器上，且接收
              如果：
-             select, poll: jvm里开辟一个数组 将 fd4 放进去
-             epoll: 上面open的时候已经开辟了一个空间，这个时候完成 epoll_ctl(fd3,ADD,fd4,EPOLLIN)
+             select, poll: register行为是在jvm里开辟一个数组 将 fd4 放进去
+             epoll: 上面open的时候已经开辟了一个空间fd3，这个时候完成 epoll_ctl(fd3,ADD,fd4,EPOLLIN)
              */
             server.register(selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {
@@ -56,7 +56,7 @@ public class SocketMultiplexingSingleThreadv1 {
 
                 //1、调多路复用器（select,poll  or  epoll(调epoll_wait)）
                 /*
-                Java中调用select()是啥意思：
+                Java中调用selector.select()是啥意思：
                 1，select，poll  其实  调内核的select（fd4）  poll(fd4)
                 2，epoll：  其实 调内核的 epoll_wait()
                 *, 参数可以带时间：没有时间，或者0  ：  阻塞，有时间设置一个超时
@@ -66,13 +66,13 @@ public class SocketMultiplexingSingleThreadv1 {
                 其实再触碰到selector.select()调用的时候触发了epoll_ctl的调用
 
                  */
-                while (selector.select(500) > 0) {
+                while (selector.select(500) > 0) {//是否建立连接返回事件
                     Set<SelectionKey> selectionKeys = selector.selectedKeys();//返回的有状态的fd集合
                     Iterator<SelectionKey> iter = selectionKeys.iterator();
                     //so，管你啥多路复用器，你呀只能给我状态，我还得一个一个的去处理他们的R/W。同步好辛苦！！！！！！！！
                     //  NIO  自己对着每一个fd调用系统调用，浪费资源，那么你看，这里是不是调用了一次select方法，知道具体的那些可以R/W了？
                     //是不是很省力？
-                    //我前边刻意强调过，socket：  listen   通信 R/W
+                    //我前边刻意强调过，socket有两种：  listen   通信 R/W
                     while (iter.hasNext()) {
                         SelectionKey key = iter.next();
                         iter.remove(); //set  不移除会重复循环处理
